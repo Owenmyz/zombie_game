@@ -2,7 +2,7 @@ import pygame
 import math
 
 class Bullet:
-    def __init__(self, x, y, target_x, target_y, width=10, height=5, speed=10, color=(255, 255, 0)):
+    def __init__(self, x, y, target_x, target_y, speed=10, width=10, height=5, angle=0, color=(255, 255, 0)):
         self.x = x
         self.y = y
         self.width = width
@@ -12,7 +12,13 @@ class Bullet:
         # Calculate direction from player to target
         direction_x = target_x - x
         direction_y = target_y - y
-        distance = math.hypot(direction_x, direction_y)  # Normalize direction
+        distance = math.hypot(direction_x, direction_y)
+
+        # Apply angle if any (for shotgun)
+        angle_radians = math.radians(angle)
+        direction_x = direction_x * math.cos(angle_radians) - direction_y * math.sin(angle_radians)
+        direction_y = direction_x * math.sin(angle_radians) + direction_y * math.cos(angle_radians)
+
         if distance != 0:
             self.vel_x = (direction_x / distance) * speed
             self.vel_y = (direction_y / distance) * speed
