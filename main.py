@@ -1,8 +1,11 @@
 import pygame
 import sys
 import random
+from zombies.fast_zombie import FastZombie
+from zombies.tank_zombie import TankZombie
+from zombies.exploding_zombie import ExplodingZombie
 from player import Player
-from zombie import Zombie
+from zombies.zombie import Zombie
 from gun import Gun
 
 # Initialize pygame
@@ -21,12 +24,7 @@ fast_gun = Gun("Fast Gun", bullet_speed=15, fire_rate=200, color=(0, 255, 0))
 player = Player(x=WIDTH // 2 - 25, y=HEIGHT // 2 - 25, size=50, speed=5, gun=basic_gun)
 
 # Initial zombies list
-zombies = [
-    Zombie(0, 0),  # Top-left corner
-    Zombie(WIDTH - 40, 0),  # Top-right corner
-    Zombie(0, HEIGHT - 40),  # Bottom-left corner
-    Zombie(WIDTH - 40, HEIGHT - 40)  # Bottom-right corner
-]
+zombies = []
 
 # Gun pickups (start with no guns)
 guns = []
@@ -46,6 +44,11 @@ clock = pygame.time.Clock()
 running = True
 while running:
     screen.fill((0, 0, 0))  # Fill screen with black
+
+    # Check if player health is zero
+    if player.health <= 0:
+        print("Game Over! Exiting game.")
+        running = False  # End game if player health is zero
 
     # Get the current time
     current_time = pygame.time.get_ticks()
@@ -68,16 +71,31 @@ while running:
 
     # Update bullets and check for collisions
     player.update_bullets(WIDTH, HEIGHT, zombies)
+    player.update_explosions(zombies)  # Update explosions and damage nearby zombies
+
+    # Draw player, health bar, and other elements
+    player.draw(screen)
 
     # Spawn a new zombie every few seconds
     if current_time - last_zombie_spawn_time >= zombie_spawn_delay:
-        # Randomly choose one of the corners to spawn the zombie
         spawn_x, spawn_y = random.choice([(0, 0), (WIDTH - 40, 0), (0, HEIGHT - 40), (WIDTH - 40, HEIGHT - 40)])
-        new_zombie = Zombie(spawn_x, spawn_y)
+        
+        # Randomly choose a type of zombie to spawn
+        zombie_type = random.choice(["normal", "fast", "tank", "exploding"])
+        
+        if zombie_type == "fast":
+            new_zombie = FastZombie(spawn_x, spawn_y)
+        elif zombie_type == "tank":
+            new_zombie = TankZombie(spawn_x, spawn_y)
+        elif zombie_type == "exploding":
+            new_zombie = ExplodingZombie(spawn_x, spawn_y)
+        else:
+            new_zombie = Zombie(spawn_x, spawn_y)  # Normal zombie
+
         zombies.append(new_zombie)
         last_zombie_spawn_time = current_time  # Reset the last spawn time
 
-    # In the gun spawn section, add different gun types
+    # Spawn a new gun every 30 seconds
     if current_time - last_gun_spawn_time >= gun_spawn_delay:
         gun_types = [
             Gun("Random Gun", bullet_speed=random.randint(10, 20), fire_rate=random.randint(200, 700), color=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))),
@@ -85,40 +103,28 @@ while running:
             Gun("RPG", bullet_speed=8, fire_rate=1000, color=(0, 0, 255), gun_type="rpg")
         ]
         random_gun = random.choice(gun_types)
-
-        # Randomly place the gun on the screen
         gun_x = random.randint(50, WIDTH - 50)
         gun_y = random.randint(50, HEIGHT - 50)
-
-        # Add the new gun to the guns list
         guns.append({"gun": random_gun, "x": gun_x, "y": gun_y})
-
-        # Reset the last gun spawn time
-        last_gun_spawn_time = current_time
+        last_gun_spawn_time = current_time  # Reset the last gun spawn time
 
     # Move and draw zombies
-    for zombie in zombies:
+    for zombie in zombies[:]:
         if not zombie.check_collision_with_player(player.x, player.y, player.size):
             zombie.move_towards_player(player.x, player.y, zombies)
         zombie.draw(screen)
 
-    # Draw and check gun pickups
+    # Check for gun pickups and draw them
     for gun_pickup in guns[:]:
         gun_pickup_obj = gun_pickup["gun"]
         gun_rect = pygame.Rect(gun_pickup["x"], gun_pickup["y"], 20, 10)
         pygame.draw.rect(screen, gun_pickup_obj.color, gun_rect)
 
-        print(f"Drawing gun at ({gun_pickup['x']}, {gun_pickup['y']})")  # Debugging print statement
-
         # Check if player is picking up the gun
         player_rect = pygame.Rect(player.x, player.y, player.size, player.size)
         if player_rect.colliderect(gun_rect):
             player.pick_up_gun(gun_pickup_obj)
-            print(f"Player picked up gun: {gun_pickup_obj.name}")  # Debugging pickup message
             guns.remove(gun_pickup)  # Remove gun from the list once picked up
-
-    # Draw the player and bullets
-    player.draw(screen)
 
     # Update the display
     pygame.display.flip()

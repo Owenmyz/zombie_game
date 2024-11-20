@@ -2,19 +2,20 @@ import pygame
 import math
 
 class Bullet:
-    def __init__(self, x, y, target_x, target_y, speed=10, width=10, height=5, angle=0, color=(255, 255, 0)):
+    def __init__(self, x, y, target_x, target_y, speed=10, width=10, height=5, angle=0, color=(255, 255, 0), bullet_type="normal"):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.color = color
+        self.bullet_type = bullet_type  # 'normal' or 'rpg'
 
         # Calculate direction from player to target
         direction_x = target_x - x
         direction_y = target_y - y
         distance = math.hypot(direction_x, direction_y)
 
-        # Apply angle if any (for shotgun)
+        # Apply angle if any (for shotgun spread)
         angle_radians = math.radians(angle)
         direction_x = direction_x * math.cos(angle_radians) - direction_y * math.sin(angle_radians)
         direction_y = direction_x * math.sin(angle_radians) + direction_y * math.cos(angle_radians)
@@ -39,9 +40,14 @@ class Bullet:
         pygame.draw.rect(surface, self.color, (self.x, self.y, self.width, self.height))
 
     def check_collision_with_zombie(self, zombie):
-        return (
+        if (
             self.x < zombie.x + zombie.size and
             self.x + self.width > zombie.x and
             self.y < zombie.y + zombie.size and
             self.y + self.height > zombie.y
-        )
+        ):
+            # If this is an RPG, trigger an explosion
+            if self.bullet_type == "rpg":
+                return "explode"  # Return special flag for RPG bullets
+            return True
+        return False
