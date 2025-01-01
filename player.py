@@ -75,21 +75,17 @@ class Player:
         for bullet in self.bullets[:]:
             bullet.move()
             bullet.check_off_screen(screen_width, screen_height)
-            
             if not bullet.active:
                 self.bullets.remove(bullet)
                 continue
 
             for zombie in zombies[:]:
                 collision = bullet.check_collision_with_zombie(zombie)
-                
-                if collision == "explode":
-                    # Trigger explosion when RPG hits
-                    self.explosions.append(Explosion(bullet.x, bullet.y))
-                    self.bullets.remove(bullet)
-                    break
-                elif collision:
-                    zombie.take_damage(15)  # Reduce zombie health when hit by a bullet
+                if collision:
+                    if isinstance(zombie, ExplodingZombie):  # Handle exploding zombie
+                        zombie.take_damage(15, player=self, zombies=zombies, surface=self.screen)
+                    else:
+                        zombie.take_damage(15)  # Normal zombie takes damage
                     if not zombie.active:  # Remove zombie if health is zero
                         zombies.remove(zombie)
                     self.bullets.remove(bullet)
